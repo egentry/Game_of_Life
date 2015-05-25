@@ -22,14 +22,14 @@ void init_matrix(short ** matrix, int size_x, int size_y, int num_guard_cells, i
 	int i, j;
 
 	srand(seed);
-	for (i=num_guard_cells; i<size_x-num_guard_cells; ++i)
+	for (i=0; i<size_x; ++i)
 	{
-		for (j=num_guard_cells; j<size_y-num_guard_cells; ++j)
+		for (j=0; j<size_y; ++j)
 		{
 			matrix[i][j] = rand()%2;
 		}
 	}
-	enforce_boundary_conditions(matrix, size_x, size_y, num_guard_cells);
+	// enforce_boundary_conditions(matrix, size_x, size_y, num_guard_cells);
 
 	return;
 }
@@ -139,6 +139,36 @@ void enforce_boundary_conditions(short ** matrix, int size_x, int size_y, int nu
 
 	return;
 }
+
+void enforce_boundary_conditions_leftright(short ** matrix, int size_x, int size_y, int num_guard_cells)
+{
+	// enforces PERIODIC boundary conditions, including across corners
+
+	int i,j;
+	// const int inner_valid_edge_x = num_guard_cells;
+	// const int outer_valid_edge_x = size_x - num_guard_cells - 1;
+	const int inner_valid_edge_y = num_guard_cells;
+	const int outer_valid_edge_y = size_y - num_guard_cells - 1;
+
+
+	// edges
+	for (i=num_guard_cells; i<size_x-num_guard_cells; ++i)
+	{
+		matrix[i][inner_valid_edge_y-1] = matrix[i][outer_valid_edge_y];
+		matrix[i][outer_valid_edge_y+1] = matrix[i][inner_valid_edge_y];
+	}
+
+
+
+	// corners
+	// matrix[inner_valid_edge_x-1][inner_valid_edge_y-1] = matrix[outer_valid_edge_x][outer_valid_edge_y];
+	// matrix[inner_valid_edge_x-1][outer_valid_edge_y+1] = matrix[outer_valid_edge_x][inner_valid_edge_y];
+	// matrix[outer_valid_edge_x+1][inner_valid_edge_y-1] = matrix[inner_valid_edge_x][outer_valid_edge_y];
+	// matrix[outer_valid_edge_x+1][outer_valid_edge_y+1] = matrix[inner_valid_edge_x][inner_valid_edge_y];
+
+	return;
+}
+
 
 
 void swap(void **a, void **b)
