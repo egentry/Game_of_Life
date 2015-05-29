@@ -6,12 +6,12 @@ SERIAL_OBJS= GoL_serial.o GoL.o
 SERIAL_EXE = GoL_serial
 SERIAL_FLAGS = -Og -g
 
-MPI_OBJS= GoL_MPI.o GoL.o communicate.o
+MPI_OBJS= GoL_MPI.o GoL.o communicate.o io.o
 MPI_EXE = GoL_MPI
-MPI_FLAGS = -Og -g
+MPI_FLAGS = 
 
 .c.o: 
-	$(MPICC) -c $< $(SERIAL_FLAGS)
+	$(MPICC) -c $< $(MPI_FLAGS)
 
 # test: test.o
 # 	$(MPICC) -o test test.o

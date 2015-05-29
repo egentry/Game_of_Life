@@ -142,11 +142,9 @@ void enforce_boundary_conditions(short ** matrix, int size_x, int size_y, int nu
 
 void enforce_boundary_conditions_leftright(short ** matrix, int size_x, int size_y, int num_guard_cells)
 {
-	// enforces PERIODIC boundary conditions, including across corners
 
 	int i,j;
-	// const int inner_valid_edge_x = num_guard_cells;
-	// const int outer_valid_edge_x = size_x - num_guard_cells - 1;
+
 	const int inner_valid_edge_y = num_guard_cells;
 	const int outer_valid_edge_y = size_y - num_guard_cells - 1;
 
@@ -157,14 +155,6 @@ void enforce_boundary_conditions_leftright(short ** matrix, int size_x, int size
 		matrix[i][inner_valid_edge_y-1] = matrix[i][outer_valid_edge_y];
 		matrix[i][outer_valid_edge_y+1] = matrix[i][inner_valid_edge_y];
 	}
-
-
-
-	// corners
-	// matrix[inner_valid_edge_x-1][inner_valid_edge_y-1] = matrix[outer_valid_edge_x][outer_valid_edge_y];
-	// matrix[inner_valid_edge_x-1][outer_valid_edge_y+1] = matrix[outer_valid_edge_x][inner_valid_edge_y];
-	// matrix[outer_valid_edge_x+1][inner_valid_edge_y-1] = matrix[inner_valid_edge_x][outer_valid_edge_y];
-	// matrix[outer_valid_edge_x+1][outer_valid_edge_y+1] = matrix[inner_valid_edge_x][inner_valid_edge_y];
 
 	return;
 }
