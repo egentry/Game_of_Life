@@ -3,62 +3,73 @@
 #include <stdbool.h>
 #include <mpi.h>
 #include "GoL.h"
+#include "communicate.h"
 
 #include "io.h"
 
 
-void io_MPI(short ** matrix, int proc_rank, int printing_proc, int size_x, int size_y, int num_guard_cells, int proc_size_x, int proc_size_y, MPI_Comm topology)
+void io_MPI(short ** matrix, int proc_rank, int printing_proc, int size_x, int size_y, int num_guard_cells, int proc_size_x, int proc_size_y, struct topology my_topology)
 {
 
-	int i,j;
-	const int num_dims = 2;
-	int my_coords[num_dims];
-
-	MPI_Cart_coords(topology, proc_rank, num_dims, my_coords);
-
-	short *line;
-
 	int ierr; 
-	const int remain_dims[num_dims] = {false, true}; // slice along the TRUE axis
-	MPI_Comm my_row;
-	ierr = MPI_Cart_sub(topology, remain_dims, &my_row);
 
-	if (my_coords[1]==0)
+	short  sub_matrix[size_x-2*num_guard_cells][(size_y-2*num_guard_cells)*proc_size_y];
+	short full_matrix[(size_x-2*num_guard_cells)*proc_size_x][(size_y-2*num_guard_cells)*proc_size_y];
+
+	int i,j;
+
+	// Gather across rows
+	for (i=1*num_guard_cells; i<size_x-1*num_guard_cells; ++i)
 	{
-		// if I'm the 0th rank in my row:
-		int tmp_coords[1];
-		MPI_Cart_coords(my_row, proc_rank, 1, tmp_coords);
-
-		printf("my rank =%d, my coords = [%d, %d] \n", proc_rank, my_coords[0], my_coords[1]);
-		printf("my rank =%d, my row coords = [%d] \n", proc_rank, tmp_coords[0]);
-
-		line = malloc((size_y-2)*proc_size_y * sizeof(short));
-	}
-
-	for (i=1; i<size_x-1; ++i)
-	{
-		ierr = MPI_Gather(&(matrix[i][1]), size_y-2, MPI_SHORT, 
-						  line, size_y-2, MPI_SHORT, 0, my_row);
-
-		if (proc_rank==0)
+		if(my_topology.coords[1] == 0)
 		{
-			printf("line %d: ", i);
-			for (j=0; j<(size_y-2)*proc_size_y; ++j)
-			{
-				printf("%d ", line[j]);
-			}
-			printf("\n");
+
+			ierr = MPI_Gather(&(matrix[i][1]), size_y-2*num_guard_cells, MPI_SHORT, 
+							  &(sub_matrix[i-1]), size_y-2*num_guard_cells, MPI_SHORT, 0, my_topology.row);
+		}
+		else
+		{
+			void * blank_ptr;
+			ierr = MPI_Gather(&(matrix[i][1]), size_y-2*num_guard_cells, MPI_SHORT, 
+							  blank_ptr, size_y-2*num_guard_cells, MPI_SHORT, 0, my_topology.row);
 		}
 	}
 
-
-
-	// now I need to collect these all to the io processor, and print into a file. Almost done!
-
-
-	if (my_coords[1]==0)
+	// Gather across columns
+	for (i=0; i<proc_size_x; ++i)
 	{
-		free(line);
+		if( (my_topology.coords[0]==0) && (my_topology.coords[1]==0) )
+		{
+			ierr = MPI_Gather(sub_matrix, 
+				proc_size_y*(size_y-2*num_guard_cells)*(size_x-2*num_guard_cells),
+				MPI_SHORT, full_matrix, 
+				proc_size_y*(size_y-2*num_guard_cells)*(size_x-2*num_guard_cells), 
+				MPI_SHORT, 0, my_topology.column);
+		}
+		else if( (my_topology.coords[0]!=0) && (my_topology.coords[1]==0) )
+		{
+			void * blank_ptr;
+			ierr = MPI_Gather(sub_matrix, 
+				proc_size_y*(size_y-2*num_guard_cells)*(size_x-2*num_guard_cells),
+				MPI_SHORT, blank_ptr, 
+				proc_size_y*(size_y-2*num_guard_cells)*(size_x-2*num_guard_cells), 
+				MPI_SHORT, 0, my_topology.column);
+		}
+	}
+
+	// Print
+	if (proc_rank==0)
+	{
+		printf("matrix: \n");
+		for (j=0; j<(size_y-2)*proc_size_y; ++j)
+		{
+			int k;
+			for( k=0; k<(size_x-2)*proc_size_x; ++k)
+			{
+				printf("%d ", full_matrix[j][k]);	
+			}
+		printf("\n");
+		}
 	}
 
 	return;

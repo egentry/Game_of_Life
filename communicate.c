@@ -4,36 +4,55 @@
 
 #include "communicate.h"
 
-MPI_Comm create_topology(const int proc_size_x, const int proc_size_y)
+
+
+struct topology create_topology(const int proc_size_x, const int proc_size_y, const int proc_rank)
 {
 	// assumes 2 dimensions. If you want more than 2 dimenions, overload this function
-	MPI_Comm topology;
+	struct topology my_topology;
+
+	MPI_Comm overall;
 
 	int ndims = 2;
 
-	int periodic[2];
-	int dims[2];
+	int periodic[ndims];
+	int dims[ndims];
 	int reorder = true;
-
 	// periodicic boundary conditions
 	periodic[0] = true;
 	periodic[1] = true;
-
 	dims[0] = proc_size_x;
 	dims[1] = proc_size_y; 
+	MPI_Cart_create(MPI_COMM_WORLD, ndims, dims, periodic, reorder, &overall);
 
-	MPI_Cart_create(MPI_COMM_WORLD, ndims, dims, periodic, reorder, &topology);
+	int my_coords[ndims];
+	MPI_Cart_coords(overall, proc_rank, ndims, my_coords);
 
-	return topology;
+	int ierr; 
+	int remain_dims[ndims];
+	remain_dims[0] = false;
+	remain_dims[1] = true; // slice along the TRUE axis
+	MPI_Comm row;
+	ierr = MPI_Cart_sub(overall, remain_dims, &row);
+
+	remain_dims[0] = true;
+	remain_dims[1] = false;
+	MPI_Comm column;
+	ierr = MPI_Cart_sub(overall, remain_dims, &column);
+
+	my_topology.overall   = overall;
+	my_topology.row 	  = row;
+	my_topology.column    = column;
+	my_topology.coords[0] = my_coords[0];
+	my_topology.coords[1] = my_coords[1];
+
+	return my_topology;
 }
 
-void swap_rows(short ** matrix, int size_x, int size_y, int proc_rank, int proc_size)
+void swap_rows(short ** matrix, const int size_x, const int size_y, const int proc_rank, const int proc_size)
 {
 	// assumes that your left/right boundary conditions are already 
 
-	// to do: add information about topology (i.e. how to swap in UP DOWN directions)
-	// 			- check out virtual topologies
-	//			- create MPI_derived type for 2D domain decomposition
 	int ierr;
 
 	MPI_Request sendrecv_requests[4];
@@ -74,7 +93,7 @@ void swap_rows(short ** matrix, int size_x, int size_y, int proc_rank, int proc_
 
 
 
-void swap_columns_with_topology(short ** matrix, MPI_Comm topology, const int size_x, const int size_y, const int proc_rank, const int proc_size)
+void swap_columns_with_topology(short ** matrix, struct topology my_topology, const int size_x, const int size_y, const int proc_rank, const int proc_size)
 {
 	int ierr;
 	MPI_Request  all_requests[4];
@@ -86,7 +105,7 @@ void swap_columns_with_topology(short ** matrix, MPI_Comm topology, const int si
 
 	int direction = 1;
 	int disp = 1; // i.e. what would the ranks be for a shift RIGHT (for disp > 0)
-	MPI_Cart_shift(topology, direction, disp, &rank_left, &rank_right);
+	MPI_Cart_shift(my_topology.overall, direction, disp, &rank_left, &rank_right);
 
 
 	// send + receive buffers, since columns are the slow axis in C
@@ -132,7 +151,7 @@ void swap_columns_with_topology(short ** matrix, MPI_Comm topology, const int si
 	return;
 }
 
-void swap_rows_with_topology(short ** matrix, MPI_Comm topology, const int size_x, const int size_y, const int proc_rank, const int proc_size)
+void swap_rows_with_topology(short ** matrix, struct topology my_topology, const int size_x, const int size_y, const int proc_rank, const int proc_size)
 {
 	int ierr;
 	MPI_Request  all_requests[4];
@@ -144,7 +163,7 @@ void swap_rows_with_topology(short ** matrix, MPI_Comm topology, const int size_
 
 	int direction = 0;
 	int disp = 1; // i.e. what would the ranks be for a shift UP (for disp > 0)
-	MPI_Cart_shift(topology, direction, disp, &rank_down, &rank_up);
+	MPI_Cart_shift(my_topology.overall, direction, disp, &rank_down, &rank_up);
 
 	send_tag_down = proc_rank + 0*proc_size;
 	ierr = MPI_Isend(matrix[1], size_y, MPI_SHORT, rank_down, send_tag_down,
@@ -169,7 +188,7 @@ void swap_rows_with_topology(short ** matrix, MPI_Comm topology, const int size_
 	return;
 }
 
-int wrap_ranks(int proc_id, int proc_size)
+int wrap_ranks(int proc_id, const int proc_size)
 {
 	if (proc_id == -1)
 	{

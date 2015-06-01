@@ -15,7 +15,6 @@ int main(int argc, char *argv[])
 	MPI_Comm_size( MPI_COMM_WORLD, &proc_size);
 
 
-
 	const int size_x = 5;
 	const int size_y = 5;
 	const int size_x_overall = size_x * proc_size;
@@ -24,11 +23,11 @@ int main(int argc, char *argv[])
 	short ** matrix_old;
 	short ** matrix_new;
 
-	int num_timesteps = 1;
+	int num_timesteps = 5;
 
 	int i,j,k;
 
-	int verbose = 1;
+	int verbose = 0;
 
 	// // // // // Parse inputs // // // // //
 
@@ -58,8 +57,7 @@ int main(int argc, char *argv[])
 
 	// // // // // Set up system // // // // //
 
-	MPI_Comm topology = create_topology(proc_size_x, proc_size_y);
-
+	struct topology my_topology = create_topology(proc_size_x, proc_size_y, proc_rank);
 
 	if (proc_rank!=printing_proc)
 	{
@@ -78,60 +76,32 @@ int main(int argc, char *argv[])
 	int seed = rand();
 	init_matrix(matrix_old, size_x, size_y, num_guard_cells, seed);
 
-	swap_rows_with_topology(    matrix_old, topology, size_x,  size_y,  proc_rank,  proc_size);
-	swap_columns_with_topology( matrix_old, topology, size_x,  size_y,  proc_rank,  proc_size);
-
-	if ((verbose) && (proc_rank==printing_proc))
-	{
-		printf("Printing initial matrix: \n");
-		print_matrix(matrix_old, size_x, size_y);
-	}
-
+	swap_rows_with_topology(    matrix_old, my_topology, size_x,  size_y,  proc_rank,  proc_size);
+	swap_columns_with_topology( matrix_old, my_topology, size_x,  size_y,  proc_rank,  proc_size);
 
 
 	// // // // // Evolve system // // // // //
 
 
-	// dead_or_alive( matrix_old, matrix_new, size_x, size_y, num_guard_cells, verbose);
-	// if ((verbose) && (proc_rank==printing_proc))
-	// {
-	// 	printf("Printing after dead_or_alive: \n");
-	// 	print_matrix(matrix_new, size_x, size_y);
-	// }
-	// enforce_boundary_conditions_leftright(matrix_new, size_x, size_y, num_guard_cells);
-	// swap_rows(matrix_new, size_x, size_y, proc_rank, proc_size);
-	// if ((verbose) && (proc_rank==printing_proc))
-	// {
-	// 	printf("Printing after full time step: \n");
-	// 	print_matrix(matrix_new, size_x, size_y);
-	// }
-	// swap((void*) &matrix_old, (void*) &matrix_new);
-
-
-
 	for (k=0; k<num_timesteps; ++k)
 	{
-		dead_or_alive( matrix_old, matrix_new, size_x, size_y, num_guard_cells, verbose);
-		swap_rows_with_topology(    matrix_new, topology, size_x,  size_y,  proc_rank,  proc_size);
-		swap_columns_with_topology( matrix_new, topology, size_x,  size_y,  proc_rank,  proc_size);
-		swap((void*) &matrix_old, (void*) &matrix_new);
-
 		if (proc_rank==printing_proc)
 		{
 			printf("k=%d: \n", k);
-			print_matrix(matrix_old, size_x, size_y);
 		}
-	}
+		io_MPI(matrix_old, proc_rank, printing_proc, size_x, size_y, num_guard_cells, proc_size_x, proc_size_y, my_topology);
 
+		dead_or_alive( matrix_old, matrix_new, size_x, size_y, num_guard_cells, verbose);
+		swap_rows_with_topology(    matrix_new, my_topology, size_x,  size_y,  proc_rank,  proc_size);
+		swap_columns_with_topology( matrix_new, my_topology, size_x,  size_y,  proc_rank,  proc_size);
+		swap((void*) &matrix_old, (void*) &matrix_new);
+	}
 
 	if (proc_rank==printing_proc)
 	{
-		printf("Printing after full evolution step: \n");
-		print_matrix(matrix_new, size_x, size_y);
+		printf("Printing final matrix: \n");
 	}
-
-	io_MPI(matrix_new, proc_rank, printing_proc, size_x, size_y, num_guard_cells, proc_size_x, proc_size_y, topology);
-
+	io_MPI(matrix_old, proc_rank, printing_proc, size_x, size_y, num_guard_cells, proc_size_x, proc_size_y, my_topology);
 
 
 	free(matrix_old);
