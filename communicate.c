@@ -93,7 +93,8 @@ void swap_rows(short ** matrix, const int size_x, const int size_y, const int pr
 
 
 
-void swap_columns_with_topology(short ** matrix, struct topology my_topology, const int size_x, const int size_y, const int proc_rank, const int proc_size)
+void swap_columns_with_topology(short ** matrix, struct topology my_topology, const int size_x, const int size_y, const int proc_rank, const int proc_size,
+	const int num_guard_cells)
 {
 	int ierr;
 	MPI_Request  all_requests[4];
@@ -114,44 +115,47 @@ void swap_columns_with_topology(short ** matrix, struct topology my_topology, co
 	short left_recv[size_x];  
 	short right_recv[size_x]; 
 
-	int i;
-	for (i=0; i<size_x; ++i)
+	int i, j;
+	for (j=0; j<num_guard_cells; ++j)
 	{
-		left_send[i]  = matrix[i][1];
-		right_send[i] = matrix[i][size_x - 2];
-	}
+		for (i=0; i<size_x; ++i)
+		{
+			 left_send[i] = matrix[i][1+j];
+			right_send[i] = matrix[i][size_x-2-j];
+		}
 
-	send_tag_left = proc_rank + 0*proc_size;
-	ierr = MPI_Isend(left_send, size_y, MPI_SHORT, rank_left, send_tag_left,
-						MPI_COMM_WORLD, &all_requests[0]);
+		send_tag_left = proc_rank + 0*proc_size;
+		ierr = MPI_Isend(left_send, size_y, MPI_SHORT, rank_left, send_tag_left,
+							MPI_COMM_WORLD, &all_requests[0]);
 
-	send_tag_right 	= proc_rank + 1*proc_size;
-	ierr = MPI_Isend(right_send, size_y, MPI_SHORT, rank_right, send_tag_right,
-						MPI_COMM_WORLD, &all_requests[1]);
+		send_tag_right 	= proc_rank + 1*proc_size;
+		ierr = MPI_Isend(right_send, size_y, MPI_SHORT, rank_right, send_tag_right,
+							MPI_COMM_WORLD, &all_requests[1]);
+
+		recv_tag_right = rank_left + 0*proc_size;
+		ierr = MPI_Irecv(right_recv, size_y, MPI_SHORT, rank_right, recv_tag_right,
+					MPI_COMM_WORLD, &all_requests[2]);
+
+		recv_tag_left = rank_left + 1*proc_size;
+		ierr = MPI_Irecv(left_recv, size_y, MPI_SHORT, rank_left, recv_tag_left,
+					MPI_COMM_WORLD, &all_requests[3]);
 
 
-	recv_tag_right = rank_left + 0*proc_size;
-	ierr = MPI_Irecv(right_recv, size_y, MPI_SHORT, rank_right, recv_tag_right,
-				MPI_COMM_WORLD, &all_requests[2]);
+		int num_requests = 4;
+		ierr = MPI_Waitall(num_requests, all_requests, all_statuses );	
 
-	recv_tag_left = rank_left + 1*proc_size;
-	ierr = MPI_Irecv(left_recv, size_y, MPI_SHORT, rank_left, recv_tag_left,
-				MPI_COMM_WORLD, &all_requests[3]);
-
-
-	int num_requests = 4;
-	ierr = MPI_Waitall(num_requests, all_requests, all_statuses );	
-
-	for(i=0; i<size_x; ++i)
-	{
-		matrix[i][0] 			= left_recv[ i];
-		matrix[i][size_x - 1] 	= right_recv[i];
+		for(i=0; i<size_x; ++i)
+		{
+			matrix[i][0+j] 			  = left_recv[ i];
+			matrix[i][size_x - 1 - j] = right_recv[i];
+		}
 	}
 
 	return;
 }
 
-void swap_rows_with_topology(short ** matrix, struct topology my_topology, const int size_x, const int size_y, const int proc_rank, const int proc_size)
+void swap_rows_with_topology(short ** matrix, struct topology my_topology, const int size_x, const int size_y, const int proc_rank, const int proc_size,
+	const int num_guard_cells)
 {
 	int ierr;
 	MPI_Request  all_requests[4];

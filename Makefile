@@ -8,7 +8,8 @@ SERIAL_FLAGS = -Og -g
 
 MPI_OBJS= GoL_MPI.o GoL.o communicate.o io.o
 MPI_EXE = GoL_MPI
-MPI_FLAGS =  -Og -g
+MPI_FLAGS       =  -O2
+MPI_FLAGS_DEBUG =  -Og -g
 
 
 .c.o: 
@@ -21,6 +22,6 @@ $(SERIAL_EXE): $(SERIAL_OBJS)
 	$(CC) -o $(SERIAL_EXE) $(SERIAL_OBJS) $(SERIAL_FLAGS) 
 
 clean:
-	rm -f *.o
+	rm -f *.o data/*.dat
 	rm -f $(SERIAL_EXE)
 	rm -f $(MPI_EXE)

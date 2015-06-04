@@ -15,9 +15,9 @@
 	struct topology create_topology(const int proc_size_x, const int proc_size_y, const int proc_size);
 
 	void swap_columns_with_topology(short ** matrix, struct topology my_topology, 
-		const int size_x, const int size_y, const int proc_rank, const int proc_size);
+		const int size_x, const int size_y, const int proc_rank, const int proc_size, const int num_guard_cells);
 	void swap_rows_with_topology(short ** matrix, struct topology my_topology, 
-		const int size_x, const int size_y, const int proc_rank, const int proc_size);
+		const int size_x, const int size_y, const int proc_rank, const int proc_size, const int num_guard_cells);
 
 
 	int wrap_ranks(int proc_id, const int proc_size);

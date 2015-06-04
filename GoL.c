@@ -16,20 +16,29 @@ short ** allocate_matrix(short ** matrix, int size_x, int size_y)
 	return matrix;
 }
 
+void free_matrix(short ** matrix, int size_x, int size_y)
+{
+	int i;
+	for (i=0; i<size_x; ++i)
+	{
+		free(matrix[i]);
+	}
+	free(matrix);
+}
+
 void init_matrix(short ** matrix, int size_x, int size_y, int num_guard_cells, int seed)
 {
 
 	int i, j;
 
 	srand(seed);
-	for (i=0; i<size_x; ++i)
+	for (i=num_guard_cells; i<size_x-num_guard_cells; ++i)
 	{
-		for (j=0; j<size_y; ++j)
+		for (j=num_guard_cells; j<size_y-num_guard_cells; ++j)
 		{
 			matrix[i][j] = rand()%2;
 		}
 	}
-	// enforce_boundary_conditions(matrix, size_x, size_y, num_guard_cells);
 
 	return;
 }
@@ -77,11 +86,11 @@ void dead_or_alive(short ** matrix_old, short ** matrix_new,
 		}
 	}
 
-	if (verbose)
-	{
-		printf("neighbors matrix: \n");
-		print_matrix(matrix_new, size_x, size_y);
-	}
+	// if (verbose)
+	// {
+	// 	printf("neighbors matrix: \n");
+	// 	print_matrix(matrix_new, size_x, size_y);
+	// }
 
 	//  update if cells are alive or dead
 	for (i=0; i<size_x; ++i)

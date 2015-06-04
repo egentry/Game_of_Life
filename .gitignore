@@ -2,3 +2,6 @@ tmp
 test*
 .fuse_hidden*
 .o
+writeup/
+data/
+*.mp4

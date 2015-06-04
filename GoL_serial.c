@@ -9,9 +9,9 @@ int main(int argc, char *argv[] )
 {
 	const int verbose = 1;
 
-	const int size_x = 6;
+	const int size_x = 16;
 	const int size_y = size_x;
-	int num_guard_cells = 1;  // one on each end
+	const int num_guard_cells = 1;  // one on each end
 	short ** matrix_old;
 	short ** matrix_new;
 
@@ -20,7 +20,7 @@ int main(int argc, char *argv[] )
 	matrix_old = allocate_matrix(matrix_old, size_x, size_y);
 	matrix_new = allocate_matrix(matrix_new, size_x, size_y);
 
-	int seed = size_x * size_y;
+	int seed = 0;
 	init_matrix(matrix_old, size_x, size_y, num_guard_cells, seed);
 
 	if (verbose)
@@ -40,8 +40,8 @@ int main(int argc, char *argv[] )
 	}
 
 
-	free(matrix_old);
-	free(matrix_new);
+	free_matrix(matrix_old, size_x, size_y);
+	free_matrix(matrix_new, size_x, size_y);
 
 	return 0;
 
