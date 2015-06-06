@@ -1,7 +1,7 @@
-tmp
-test*
-.fuse_hidden*
 .o
-writeup/
 data/
-*.mp4
+.ipynb_checkpoints/
+GoL_serial
+GoL_MPI
+get_performance_constants
+
