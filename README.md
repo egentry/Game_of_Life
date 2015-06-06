@@ -30,8 +30,8 @@ Licensed under the MIT License
  
 
 ##Requires
-  - gcc (makefile can be adapted to use other compilers
-  - mpicc
+  - gcc (makefile can be adapted to use other compilers)
+  - mpicc (makefile assumes OpenMPI)
   - For visualization:
     - Python (tested for v.3, probably backwards compatible)
     - IPython 3
