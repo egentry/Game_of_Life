@@ -57,7 +57,7 @@ Since this problem is a fixed grid, with fixed computation per grid point, we al
 
 \subsection{Mapping}
 
-In short, much of the mapping will be left to MPI and the batch system on Grape.  Using the batch system we will requires a number of nodes, and will use all the cores on each node. This will minimize the inter-node communication, which will be slower than intra-node communication. Alternatively, we could have used a hybrid model, using \texttt{MPI} between nodes,
+In short, much of the mapping will be left to MPI and the batch system on Grape, the Applied Math and Statistics compute cluster at UCSC.  Using the batch system we will requires a number of nodes, and will use all the cores on each node. This will minimize the inter-node communication, which will be slower than intra-node communication. Alternatively, we could have used a hybrid model, using \texttt{MPI} between nodes,
 and \texttt{OpenMP} within nodes, but for simplicity we have kept a single programming model.
 
 Once allocated nodes and cores, the only further mapping might happen when we create a Cartesian virtual communication topology within \texttt{MPI}.  We will allow \texttt{MPI\_Cart\_create} to reorder processor ranks with the knowledge of how we plan to communicate, but this only allows for the opportunity of re-mapping cores.  Re-mapping is not guaranteed.
@@ -112,7 +112,7 @@ Now we have our theoretical model, and if given constants for $t_\mathrm{start},
 
 \subsection{Verification}
 
-Using my code, I ran tests on GRAPE to determine the constants:
+Using my code, I ran tests on Grape to determine the constants:
 \begin{align}
 	t_\mathrm{start} &= 3.73 \cdot 10^{-5} \text{ s}
 	\\
@@ -123,7 +123,7 @@ Using my code, I ran tests on GRAPE to determine the constants:
 (These constants were all determined using multiple processors on one node. Only using one node will introduce errors which we will discuss later.)
 
 \subsubsection{Weak Scaling}
-On GRAPE, I ran weak scaling test ranging from 1 processor to 64 processors (8 nodes, of 8 processors per node), running for 100 timesteps, with a $1024 \times 1024$ grid on each process with 1 guard cell of padding on each edge (i.e. $(1024 - 2)^2$ true grid points). The results can be seen in Figure \ref{fig:weakscaling}. For a small number of processors ($\leq 8$), the results are relatively close to the prediction made by our performance model.  Unfortunately, once we use greater than 8 processors (requiring multiple nodes) we find that performance begins to suffer significantly.  This is likely due to the additional cost of communicating between physical nodes, which is more costly than communicating between processors on the same node.
+On Grape, I ran weak scaling test ranging from 1 processor to 64 processors (8 nodes, of 8 processors per node), running for 100 timesteps, with a $1024 \times 1024$ grid on each process with 1 guard cell of padding on each edge (i.e. $(1024 - 2)^2$ true grid points). The results can be seen in Figure \ref{fig:weakscaling}. For a small number of processors ($\leq 8$), the results are relatively close to the prediction made by our performance model.  Unfortunately, once we use greater than 8 processors (requiring multiple nodes) we find that performance begins to suffer significantly.  This is likely due to the additional cost of communicating between physical nodes, which is more costly than communicating between processors on the same node.
 
 \begin{figure}[tbp]
 \centering
