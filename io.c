@@ -13,69 +13,30 @@ void io_MPI(short ** matrix, int proc_rank, int printing_proc, int size_x, int s
 {
 	// to do: 
 	// 		adapt io routine so that the [0,0] processor doesn't need to hold all of the data from all the processors at the same time
-
 	int ierr; 
 
-	short  sub_matrix[size_x-2*num_guard_cells][(size_y-2*num_guard_cells)*proc_size_y];
-	short full_matrix[(size_x-2*num_guard_cells)*proc_size_x][(size_y-2*num_guard_cells)*proc_size_y];
+	short  sub_matrix[ size_x-2*num_guard_cells ][(size_y-2*num_guard_cells)*proc_size_y];
 
 	int i,j;
 
 	// Gather across rows
-	for (i=1*num_guard_cells; i<size_x-1*num_guard_cells; ++i)
+	for (i=num_guard_cells; i<size_x-num_guard_cells; ++i)
 	{
 		if(my_topology.coords[1] == 0)
 		{
-			ierr = MPI_Gather(    &(matrix[i][1*num_guard_cells]),size_y-2*num_guard_cells, MPI_SHORT, 
-							  &(sub_matrix[i-1*num_guard_cells]), size_y-2*num_guard_cells, MPI_SHORT, 0, my_topology.row);
+			ierr = MPI_Gather(    &(matrix[i][num_guard_cells]),size_y-2*num_guard_cells, MPI_SHORT, 
+							  &(sub_matrix[i-num_guard_cells]), size_y-2*num_guard_cells, MPI_SHORT, 0, my_topology.row);
 		}
 		else
 		{
 			void * blank_ptr;
-			ierr = MPI_Gather(&(matrix[i][1*num_guard_cells]), size_y-2*num_guard_cells, MPI_SHORT, 
+			ierr = MPI_Gather(&(matrix[i][num_guard_cells]), size_y-2*num_guard_cells, MPI_SHORT, 
 							  blank_ptr, size_y-2*num_guard_cells, MPI_SHORT, 0, my_topology.row);
 		}
 	}
 
 	// Gather across columns
-	for (i=0; i<proc_size_x; ++i)
-	{
-		if( (my_topology.coords[0]==0) && (my_topology.coords[1]==0) )
-		{
-			ierr = MPI_Gather(sub_matrix, 
-				proc_size_y*(size_y-2*num_guard_cells)*(size_x-2*num_guard_cells),
-				MPI_SHORT, full_matrix, 
-				proc_size_y*(size_y-2*num_guard_cells)*(size_x-2*num_guard_cells), 
-				MPI_SHORT, 0, my_topology.column);
-		}
-		else if( (my_topology.coords[0]!=0) && (my_topology.coords[1]==0) )
-		{
-			void * blank_ptr;
-			ierr = MPI_Gather(sub_matrix, 
-				proc_size_y*(size_y-2*num_guard_cells)*(size_x-2*num_guard_cells),
-				MPI_SHORT, blank_ptr, 
-				proc_size_y*(size_y-2*num_guard_cells)*(size_x-2*num_guard_cells), 
-				MPI_SHORT, 0, my_topology.column);
-		}
-	}
-
-	// // Print with print statements
-	// if (proc_rank==0)
-	// {
-	// 	printf("matrix: \n");
-	// 	for (j=0; j<(size_y-2*num_guard_cells)*proc_size_y; ++j)
-	// 	{
-	// 		int k;
-	// 		for( k=0; k<(size_x-2*num_guard_cells)*proc_size_x; ++k)
-	// 		{
-	// 			printf("%d ", full_matrix[j][k]);	
-	// 		}
-	// 	printf("\n");
-	// 	}
-	// }
-
-	// Print to file
-	if (proc_rank==0)
+	if( (my_topology.coords[0]==0) && (my_topology.coords[1]==0) )
 	{
 		char filename[256];
 		if (timestep != -1)
@@ -88,20 +49,48 @@ void io_MPI(short ** matrix, int proc_rank, int printing_proc, int size_x, int s
 		}
 		FILE *file_pointer = fopen(filename, "w");
 
-
-		printf("matrix: \n");
-		for (j=0; j<(size_y-2*num_guard_cells)*proc_size_y; ++j)
+		for (j=0; j<(size_x-2*num_guard_cells); ++j)
 		{
 			int k;
-			for( k=0; k<(size_x-2*num_guard_cells)*proc_size_x; ++k)
+			for( k=0; k<(size_y-2*num_guard_cells)*proc_size_y; ++k)
 			{
-				fprintf(file_pointer, "%d ", full_matrix[j][k]);	
+				fprintf(file_pointer, "%d ", sub_matrix[j][k]);	
 			}
-		fprintf(file_pointer, "\n");
+			fprintf(file_pointer, "\n");
 		}
 
+		for(i=1; i<proc_size_x; ++i)
+		{
+			MPI_Status recv_status;
+			int count 	 = proc_size_y*(size_y-2*num_guard_cells)*(size_x-2*num_guard_cells);
+			int source	 = i;
+			int tag 	 = i;
+
+			ierr = MPI_Recv(sub_matrix, count, MPI_SHORT, source, tag, my_topology.column, &recv_status );
+
+			for (j=0; j<(size_x-2*num_guard_cells); ++j)
+			{
+				int k;
+				for( k=0; k<(size_y-2*num_guard_cells)*proc_size_y; ++k)
+				{
+					fprintf(file_pointer, "%d ", sub_matrix[j][k]);	
+				}
+				fprintf(file_pointer, "\n");
+			}
+		}
 		fclose(file_pointer);
 	}
+	else if( (my_topology.coords[0]!=0) && (my_topology.coords[1]==0) )
+	{
+		int count 	= proc_size_y*(size_y-2*num_guard_cells)*(size_x-2*num_guard_cells);
+		int dest 	= 0;
+		int tag 	= my_topology.coords[0];
+
+		ierr = MPI_Send(sub_matrix, count, MPI_SHORT, dest, tag, my_topology.column);
+	}
+
+
+
 
 	return;
 }
@@ -113,7 +102,7 @@ void add_benchmark_result(int proc_size, double delta_time, int real_cells, int 
 
 	char filename[] = "data/benchmark_results.dat";
 	FILE *file_pointer = fopen(filename, "a");
-	fprintf(file_pointer, "%d %e %d %d \n", proc_size, delta_time, real_cells, num_timesteps);
+	fprintf(file_pointer, "%d         %e   %d        %d \n", proc_size, delta_time, real_cells, num_timesteps);
 	fclose(file_pointer);
 
 	return;

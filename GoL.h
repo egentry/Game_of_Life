@@ -16,4 +16,4 @@ void dead_or_alive(short ** matrix, short ** matrix_new, int size_x, int size_y,
 void swap(void **a, void **b);
 
 
-#endif
+#endif 

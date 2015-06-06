@@ -21,9 +21,9 @@ int main(int argc, char *argv[])
 	const int size_y = 1024;
 	const int size_x_overall = size_x * proc_size;
 	const int size_y_overall = size_y * proc_size;
-	      int num_guard_cells = 1;  // one on each end
+	      int num_guard_cells = 1;  // how many on each end (i.e. padding)
 
-	const int verbose = 0;
+	const int verbose = 1;
 	      int num_timesteps = 25;
 
 	short ** matrix_old;
@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 		{
 			if (proc_rank==printing_proc)
 			{
-				printf("k=%d: \n", k);
+				printf("k=%d \n", k);
 			}
 
 			io_MPI(matrix_old, proc_rank, printing_proc, size_x, size_y, num_guard_cells, proc_size_x, proc_size_y, my_topology, k);
@@ -108,7 +108,6 @@ int main(int argc, char *argv[])
 		int tmp_guard_cells = l+1;  // boundaries slowly creep inwards
 		dead_or_alive( matrix_old, matrix_new, size_x, size_y, tmp_guard_cells, verbose);
 		swap((void*) &matrix_old, (void*) &matrix_new);
-
 		++l;
 		if (l==num_guard_cells)
 		{
@@ -121,7 +120,7 @@ int main(int argc, char *argv[])
 	if (proc_rank==printing_proc)
 	{
 		double delta_time = end_time - start_time;
-		int real_cells = (size_x-num_guard_cells)*(size_y-num_guard_cells);
+		long real_cells = (size_x-num_guard_cells)*(size_y-num_guard_cells); // keep it as a 'long' to avoid overflowing 
 		printf("total time: %e [s] \n", delta_time);
 		printf("had %d real cells for %d timesteps \n", real_cells, num_timesteps);
 		printf("average time per real cell per timestep: %e [s] \n", delta_time / (real_cells * num_timesteps));
@@ -146,3 +145,4 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
+ 

@@ -9,7 +9,7 @@ int main(int argc, char *argv[] )
 {
 	const int verbose = 1;
 
-	const int size_x = 16;
+	const int size_x = 1024;
 	const int size_y = size_x;
 	const int num_guard_cells = 1;  // one on each end
 	short ** matrix_old;

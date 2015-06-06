@@ -23,4 +23,4 @@
 	int wrap_ranks(int proc_id, const int proc_size);
 	void swap_rows(short ** matrix, int size_x, int size_y, int proc_rank, int proc_size);
 
-#endif
+#endif 
